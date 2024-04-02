@@ -4,8 +4,13 @@ use axum::{
     routing::{get, post},
     Router
 };
-use std::{fs, path::Path};
-use std::net::SocketAddr;
+use reqwest;
+use std::{
+    error::Error, 
+    fs, 
+    net::SocketAddr, 
+    path::Path
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -18,11 +23,50 @@ async fn index() -> Html<String> {
 
 async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) -> impl IntoResponse {
     println!("Received chat completion request: {:?}", req);
+    send_to_openai(req).await;
     JsonResponse::from(json!({
         "status": "success",
         "message": "Request received successfully"
     }))
 
+}
+
+async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<(), Box<dyn Error>> {
+    println!("Received request to send to OpenAI");
+    let API_KEY = "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";
+    let model = "gpt-3.5-turbo";
+    
+    let messages = vec![
+        ChatCompletionRequestMessage {
+            role: "system".to_string(),
+            content: "You are a helpful assistant.".to_string(),
+        },
+        ChatCompletionRequestMessage {
+            role: "user".to_string(),
+            content: "Hello!".to_string(),
+        },
+    ];
+    let payload = CreateChatCompletionRequest { model: model.to_string(), messages };
+
+    // Send the request
+    let client = reqwest::Client::new();
+    let resp = client
+        .post("https://api.openai.com/v1/chat/completions")
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", API_KEY.to_string())) 
+        .body(serde_json::to_string(&payload)?)
+        .send()
+        .await?;
+
+    // Check if the request was successful
+    if resp.status().is_success() {
+        let text = resp.text().await?;
+        println!("Response: {}", text);
+        Ok(())
+    } else {
+        println!("Request failed with status code: {}", resp.status());
+        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Request failed")))
+    }
 }
 
 #[tokio::main]

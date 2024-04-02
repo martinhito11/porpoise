@@ -7,10 +7,11 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7.4"
-tokio = { version = "1.36.0", features = ["full"] }
+reqwest = "0.12.2"
 serde_json = "1.0.113"
-swagger = "6.4.1"
 serde = { version = "1.0", features = ["derive"] }
+swagger = "6.4.1"
+tokio = { version = "1.36.0", features = ["full"] }
 tracing-subscriber = "0.3.18"
 
 [[bin]]
