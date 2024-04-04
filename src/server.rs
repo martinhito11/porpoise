@@ -14,6 +14,8 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+mod scraper;
+
 async fn index() -> Html<String> {
     println!("Received request to hit index");
     let path = Path::new("pages/index.html"); // Path to your HTML file
@@ -23,17 +25,34 @@ async fn index() -> Html<String> {
 
 async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) -> impl IntoResponse {
     println!("Received chat completion request: {:?}", req);
-    send_to_openai(req).await;
+    //send_to_openai(req).await;
+    test_googler().await;
     JsonResponse::from(json!({
         "status": "success",
         "message": "Request received successfully"
-    }))
-
+    }));
 }
 
-async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<(), Box<dyn Error>> {
+async fn test_googler() {
+    println!("Testing googler");
+    match scraper::get_online_info("who is martin hito").await {
+        Ok(google) => {
+            // Iterate over the vector and print each string
+            for s in &google {
+                println!("Google paragraph: {}", s);
+            }
+        }
+        Err(err) => {
+            // Handle the error case
+            eprintln!("Error: {:?}", err);
+        }
+    }
+}
+
+async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<String, Box<dyn Error>> {
     println!("Received request to send to OpenAI");
-    let API_KEY = "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";
+    let api_key = "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";
+    let url = "https://api.openai.com/v1/chat/completions";
     let model = "gpt-3.5-turbo";
     
     let messages = vec![
@@ -51,9 +70,9 @@ async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<(), Box<dyn 
     // Send the request
     let client = reqwest::Client::new();
     let resp = client
-        .post("https://api.openai.com/v1/chat/completions")
+        .post(url)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", API_KEY.to_string())) 
+        .header("Authorization", format!("Bearer {}", api_key.to_string())) 
         .body(serde_json::to_string(&payload)?)
         .send()
         .await?;
@@ -62,7 +81,7 @@ async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<(), Box<dyn 
     if resp.status().is_success() {
         let text = resp.text().await?;
         println!("Response: {}", text);
-        Ok(())
+        Ok(text)
     } else {
         println!("Request failed with status code: {}", resp.status());
         Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Request failed")))
