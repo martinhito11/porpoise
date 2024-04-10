@@ -98,7 +98,6 @@ pub async fn get_online_info(query: &str) -> Result<Vec<String>, Box<dyn Error>>
     }
 }
 
-
 // helper function to remove all HTML fragments
 pub fn clean_html(input: &str) -> String {
     let stripped_html = Builder::default()

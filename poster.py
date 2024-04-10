@@ -13,10 +13,10 @@ def ping_server():
         print("Failed to connect to the server")
 
 def send_post_request():
-    model = "chat-gpt-turbo-3.5"
+    model = "gpt-3.5-turbo"
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Hello!"}
+        {"role": "user", "content": "what's up homie!"}
     ]
     url = 'http://127.0.0.1:8787/chat/completions'
     headers = {'Content-Type': 'application/json'}

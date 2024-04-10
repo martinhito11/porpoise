@@ -52,7 +52,7 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
         
         let clean_body = scraper::get_clean_site_body(link).await;
         match clean_body {
-            Ok(results) => println!("\nresults: {}", results),
+            Ok(results) => println!("\nresults: "),//{}", results),
             Err(err) => {
                 eprintln!("Error getting Google results: {:?}", err);
             }
@@ -110,19 +110,8 @@ async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<String, Box<
     println!("Received request to send to OpenAI");
     let api_key = "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";
     let url = "https://api.openai.com/v1/chat/completions";
-    let model = "gpt-3.5-turbo";
     
-    let messages = vec![
-        ChatCompletionRequestMessage {
-            role: "system".to_string(),
-            content: "You are a helpful assistant.".to_string(),
-        },
-        ChatCompletionRequestMessage {
-            role: "user".to_string(),
-            content: "Hello!".to_string(),
-        },
-    ];
-    let payload = CreateChatCompletionRequest { model: model.to_string(), messages };
+    let payload = CreateChatCompletionRequest { model: req.model.to_string(), messages: req.messages };
 
     // Send the request
     let client = reqwest::Client::new();
