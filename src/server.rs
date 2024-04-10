@@ -9,44 +9,101 @@ use std::{
     error::Error, 
     fs, 
     net::SocketAddr, 
-    path::Path
+    path::Path,
+    collections::HashMap
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 
 mod scraper;
+mod serpstack;
 
 async fn index() -> Html<String> {
     println!("Received request to hit index");
-    let path = Path::new("pages/index.html"); // Path to your HTML file
+    let path = Path::new("pages/index.html");
     let contents = fs::read_to_string(path).unwrap();
     Html(contents)
 }
 
 async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) -> impl IntoResponse {
     println!("Received chat completion request: {:?}", req);
-    //send_to_openai(req).await;
-    test_googler().await;
+
+    send_to_openai(req).await;
+    let google_results = match test_googler().await {
+        Ok(results) => results,
+        Err(err) => {
+            eprintln!("Error getting Google results: {:?}", err);
+            Vec::new()
+        }
+    };
+
+    let dic_results = json_vec_to_vec_map(google_results);
+    for vec in &dic_results {
+        // for (key, value) in vec {
+        //     println!("\n{}: {}", key, value);
+        // }
+        let link_value = vec.get("link").unwrap_or_else(|| {
+            panic!("No link found in the vector");
+        });
+        
+        let link = link_value.as_str().unwrap_or_else(|| {
+            panic!("Link value is not a string");
+        });
+        
+        let clean_body = scraper::get_clean_site_body(link).await;
+        match clean_body {
+            Ok(results) => println!("\nresults: {}", results),
+            Err(err) => {
+                eprintln!("Error getting Google results: {:?}", err);
+            }
+        }
+    }
+    
     JsonResponse::from(json!({
         "status": "success",
         "message": "Request received successfully"
     }));
 }
 
-async fn test_googler() {
+async fn test_googler() -> Result<Vec<String>, Box<dyn Error>> {
     println!("Testing googler");
-    match scraper::get_online_info("who is martin hito").await {
+    match scraper::get_online_info("nyc earthquake").await {
         Ok(google) => {
-            // Iterate over the vector and print each string
-            for s in &google {
-                println!("Google paragraph: {}", s);
-            }
+            Ok(google)
         }
         Err(err) => {
-            // Handle the error case
-            eprintln!("Error: {:?}", err);
+            Err(err.into())
         }
     }
+}
+
+async fn test_serpstack() -> Result<Vec<String>, Box<dyn Error>> {
+    println!("Testing serpstack");
+    match serpstack::get_online_info("martin hito").await {
+        Ok(google) => {
+            Ok(google)
+        }
+        Err(err) => {
+            Err(err.into())
+        }
+    }
+}
+
+fn json_vec_to_vec_map(json_vec: Vec<String>) -> Vec<HashMap<String, Value>> {
+    let mut vec_map = Vec::new();
+        
+    for json_str in json_vec {
+        let mut map = HashMap::new();
+        if let Ok(parsed_json) = serde_json::from_str::<Value>(&json_str) {
+            if let Some(obj) = parsed_json.as_object() {
+                for (key, value) in obj {
+                    map.insert(key.clone(), value.clone());
+                }
+            }
+            vec_map.push(map);
+        }
+    }
+    vec_map
 }
 
 async fn send_to_openai(req: CreateChatCompletionRequest) -> Result<String, Box<dyn Error>> {
@@ -97,7 +154,7 @@ async fn main() {
         .route("/", get(index))
         .route("/chat/completions", post(handle_chat_completion));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 7878));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8787));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     println!("Server running on {}", addr);
     

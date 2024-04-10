@@ -1,6 +1,6 @@
 import requests
 
-url = 'http://127.0.0.1:7878' 
+url = 'http://127.0.0.1:8787' 
 
 def ping_server():
     try:
@@ -18,7 +18,7 @@ def send_post_request():
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"}
     ]
-    url = 'http://127.0.0.1:7878/chat/completions'
+    url = 'http://127.0.0.1:8787/chat/completions'
     headers = {'Content-Type': 'application/json'}
     payload = {
         "model": model,
