@@ -4,15 +4,63 @@ use regex::Regex;
 use serde_json::json;
 use serde_json::Value;
 use std::error::Error;
-use std::collections::HashMap;
 
-async fn search_google(query: &str, api_key: &str, cx: &str) -> Result<Vec<String>, Box<dyn Error>> {
+use crate::helpers;
+
+/*
+    Parameters: 
+        query: string to search 
+        n: number of pages to scrape
+
+    Returns: Vector of cleaned HTML body of the top n result URLs 
+
+*/
+pub async fn get_online_info(query: &str, n: &i32) -> Vec<String> {
+    let api_key = "AIzaSyATqy-5Vogt_69sZuaI6rg6fN5bV4grqrk";
+    let cx = "036e23a64725e4446";
+
+    let query_string = &query;
+    // get google custom search API results 
+    let google_results = match search_google(query_string, api_key, cx, n).await {
+        Ok(paragraphs) => paragraphs,
+        Err(err_) => vec!["".to_string()]
+    };
+
+    // get URLs from results 
+    let dic_results = helpers::json_vec_to_vec_map(google_results);
+    let mut urls = Vec::new();
+    for vec in &dic_results {
+        let link_value = vec.get("link").unwrap_or_else(|| {
+            panic!("No link found in the vector");
+        });
+        let link = link_value.as_str().unwrap_or_else(|| {
+            panic!("Link value is not a string");
+        });
+        urls.push(link);
+    
+    };
+
+    // get list of clean HTML bodies of URLs
+    let mut clean_bodies = Vec::new();
+    for url in &urls {
+        match get_clean_site_body(url).await {
+            Some(clean_body) => clean_bodies.push(clean_body),
+            None => continue
+        }
+    };
+
+    return clean_bodies;
+    
+}
+
+async fn search_google(query: &str, api_key: &str, cx: &str, n: &i32) -> Result<Vec<String>, Box<dyn Error>> {
     let url = "https://www.googleapis.com/customsearch/v1/";
 
     let payload = json!({
         "key": api_key,
         "cx": cx,
-        "q": query
+        "q": query,
+        "num": n,
     });
 
     println!("Payload: {}", payload);
@@ -28,7 +76,7 @@ async fn search_google(query: &str, api_key: &str, cx: &str) -> Result<Vec<Strin
         let text = resp.text().await?;
         Ok(extract_query_items(&text))
     } else {
-        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Request failed")))
+        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Google search failed")))
     }
 }
 
@@ -56,45 +104,23 @@ fn extract_query_items(html_content: &str) -> Vec<String> {
     }
 }
 
-fn json_vec_to_vec_map(json_vec: Vec<String>) -> Vec<HashMap<String, Value>> {
-    let mut vec_map = Vec::new();
-        
-    for json_str in json_vec {
-        let mut map = HashMap::new();
-        if let Ok(parsed_json) = serde_json::from_str::<Value>(&json_str) {
-            if let Some(obj) = parsed_json.as_object() {
-                for (key, value) in obj {
-                    map.insert(key.clone(), value.clone());
-                }
-            }
-            vec_map.push(map);
-        }
-    }
-    vec_map
-}
-
-pub async fn get_clean_site_body(url: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let response = reqwest::get(url).await?;
+pub async fn get_clean_site_body(url: &str) -> Option<String> {
+    let response = match reqwest::get(url).await {
+        Ok(response) => response,
+        Err(_) => return None,
+    };
 
     if response.status().is_success() {
-        let body = response.bytes().await?;
+        let body = match response.bytes().await {
+            Ok(body) => body,
+            Err(_) => return None,
+        };
         let body_string = String::from_utf8_lossy(&body).to_string();
 
-        Ok(clean_html(&body_string))
+        Some(clean_html(&body_string))
     } else {
-        eprintln!("Request failed with status code: {}", response.status());
-        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Request failed")))
-    }
-}
-
-pub async fn get_online_info(query: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let api_key = "AIzaSyATqy-5Vogt_69sZuaI6rg6fN5bV4grqrk";
-    let cx = "036e23a64725e4446";
-
-    let query_string = &query;
-    match search_google(query_string, api_key, cx).await {
-        Ok(paragraphs) => Ok(paragraphs),
-        Err(err) => Err(err.into()),
+        eprintln!("Request to get URL body {} failed with status code: {}", url, response.status());
+        None
     }
 }
 
