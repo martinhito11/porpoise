@@ -1,7 +1,7 @@
 import requests
 import sys
 
-url = 'http://127.0.0.1:8787' 
+url = 'http://127.0.0.1:7878' 
 
 def ping_server():
     try:
@@ -25,7 +25,7 @@ def send_post_request():
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": user_content}
     ]
-    url = 'http://127.0.0.1:8787/chat/completions'
+    post_url = url + '/chat/completions'
     headers = {'Content-Type': 'application/json'}
     payload = {
         "model": model,
@@ -33,7 +33,7 @@ def send_post_request():
     }
 
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(post_url, json=payload, headers=headers)
         if response.status_code == 200:
             print(f"POST request sent successfully with response: {response.json()}")
         else:

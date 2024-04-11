@@ -17,17 +17,20 @@ use crate::helpers;
 */
 pub async fn get_online_info(query: &str, n: &i32) -> Vec<String> {
     let api_key = "AIzaSyATqy-5Vogt_69sZuaI6rg6fN5bV4grqrk";
-    let cx = "036e23a64725e4446";
+    let cx = "e04edfd3b386f454b";
 
-    let query_string = &query;
+    println!("received query for googling: {}", &query);
     // get google custom search API results 
-    let google_results = match search_google(query_string, api_key, cx, n).await {
+    let google_results = match search_google(&query, api_key, cx, n).await {
         Ok(paragraphs) => paragraphs,
         Err(err_) => vec!["".to_string()]
     };
+    println!("google_results: {:?}", google_results.clone());
 
     // get URLs from results 
     let dic_results = helpers::json_vec_to_vec_map(google_results);
+    println!("results of google query: {:?}", &dic_results);
+
     let mut urls = Vec::new();
     for vec in &dic_results {
         let link_value = vec.get("link").unwrap_or_else(|| {
@@ -37,12 +40,12 @@ pub async fn get_online_info(query: &str, n: &i32) -> Vec<String> {
             panic!("Link value is not a string");
         });
         urls.push(link);
-    
     };
+    for url in urls.clone() { println!("url found: {}", &url); }
 
     // get list of clean HTML bodies of URLs
     let mut clean_bodies = Vec::new();
-    for url in &urls {
+    for url in urls.iter().take(*n as usize) {
         match get_clean_site_body(url).await {
             Some(clean_body) => clean_bodies.push(clean_body),
             None => continue
@@ -60,7 +63,6 @@ async fn search_google(query: &str, api_key: &str, cx: &str, n: &i32) -> Result<
         "key": api_key,
         "cx": cx,
         "q": query,
-        "num": n,
     });
 
     println!("Payload: {}", payload);
@@ -76,20 +78,22 @@ async fn search_google(query: &str, api_key: &str, cx: &str, n: &i32) -> Result<
         let text = resp.text().await?;
         Ok(extract_query_items(&text))
     } else {
+        println!("response failed, resp: {:?}", resp);
         Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Google search failed")))
     }
 }
 
 fn extract_query_items(html_content: &str) -> Vec<String> {
-    let num_results = 1;
-    let parsed_response: Result<Value, _> = serde_json::from_str(html_content);
 
+    let parsed_response: Result<Value, _> = serde_json::from_str(html_content);
+    
     // Check if parsing was successful
     match parsed_response {
         Ok(parsed_json) => {
+            
             if let Some(items) = parsed_json["items"].as_array() {
                 let mut results = Vec::new();
-                for item in items.iter().take(num_results) {
+                for item in items.iter() {
                     results.push(item.to_string());
                 }
                 results
@@ -116,7 +120,7 @@ pub async fn get_clean_site_body(url: &str) -> Option<String> {
             Err(_) => return None,
         };
         let body_string = String::from_utf8_lossy(&body).to_string();
-
+        println!("Request to get URL body {} succeeded", url);
         Some(clean_html(&body_string))
     } else {
         eprintln!("Request to get URL body {} failed with status code: {}", url, response.status());

@@ -31,7 +31,7 @@ async fn index() -> Html<String> {
 
 async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) -> impl IntoResponse {
     println!("Received chat completion request: {:?}", req);
-    let n: i32 = 3;
+    let n: i32 = 4;
 
     // parse user query
     let user_messages: Vec<String> = req.messages.iter()
@@ -52,16 +52,13 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     
     // get googleable query
     let googleable_query: String = openai::get_googleable_query(&user_messages[0]).await;    
-    println!("got googleable query: {}", googleable_query);
+    println!("got googleable query: {}", &googleable_query);
 
     // send googleable query to scraper, retrieve cleaned HTML of top n page results 
     let scraped_pages = scraper::get_online_info(&googleable_query, &n).await;
-    if scraped_pages.len() > 0 {
-        println!("got scraped pages: {}", scraped_pages[0].clone());
-    }
+    if scraped_pages.clone().len() > 0 { println!("got scraped pages: {}", scraped_pages[0].clone()); }
     else { println!("no webpages were found") }
     
-
     // build new request 
     let mut msg: String = "".to_string();
     for page in scraped_pages.clone() {
@@ -73,6 +70,8 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     }
     
     msg.push_str(&user_messages[0]);
+
+    println!("final msg: {}", msg.clone());
 
     let req_message_user: ChatCompletionRequestMessage = ChatCompletionRequestMessage {
         role: Role::User,
@@ -126,7 +125,7 @@ async fn main() {
         .route("/", get(index))
         .route("/chat/completions", post(handle_chat_completion));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8787));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 7878));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     println!("Server running on {}", addr);
     
