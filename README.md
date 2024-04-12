@@ -19,12 +19,39 @@ Test it using the provided poster.py script or using this cURL command:
 curl -X POST 'https://porpoise-hyuqtm35xq-ue.a.run.app/chat/completions' \
 -H 'Content-Type: application/json' \
 -d '{
-    "model": "gpt-3.5-turbo",
+    "model": "gpt-4-turbo",
     "messages": [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "reddit ipo news"}
     ]
 }'
+```
+
+the above request should give a response that looks like this:
+```
+{
+  "id": "chatcmpl-9DDlHGfUqN2W1NRwsv15MvgIpxoXI",
+  "object": "chat.completion",
+  "created": 1712938191,
+  "model": "gpt-4-turbo-2024-04-09",
+  "system_fingerprint": "fp_76f018034d",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Reddit is preparing to launch an initial public offering (IPO) valued at up to $6.4 billion, aiming to raise almost $750 million by offering 22 million shares priced between $31 and $34 each. This significant step includes not only institutional investors but also an unconventional move to offer shares directly to Reddit's active users and moderators. This approach integrates these central community figures into the financial evolution of the company, marking a novel method in handling tech IPOs. This participatory strategy could add some variability to the IPO process due to the immediate selling rights granted to these users, potentially affecting stock price stability post-IPO. Additionally, Reddit's deal with Google, involving access to its extensive data for AI training, represents a new revenue stream while its persistent unprofitability raises critical considerations for potential investors ([Reddit looking to raise almost $750 million in IPO | AP News](https://www.apnews.com/reddit-ipo-details-and-strategy))."
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 8679,
+    "completion_tokens": 192,
+    "total_tokens": 8871
+  }
+}
 ```
 
 Things I did: 
