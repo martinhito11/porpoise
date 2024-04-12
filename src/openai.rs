@@ -14,7 +14,7 @@ use crate::api_dtos::{
 
 pub async fn send_chat_completion(req: ChatCompletionRequest, internal_req: bool) -> Result<ChatCompletionResponse, Box<dyn Error>> {
     println!("Received request to send to OpenAI");
-    let api_key = "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";
+    let api_key = "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";
     let url = "https://api.openai.com/v1/chat/completions";
     
     let payload = ChatCompletionRequest { model: req.model.to_string(), messages: req.messages };

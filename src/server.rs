@@ -8,6 +8,7 @@ use axum::{
 
 use std::{
     error::Error,
+    env,
     fs, 
     net::SocketAddr, 
     path::Path
@@ -116,7 +117,20 @@ async fn main() {
         .route("/", get(index))
         .route("/chat/completions", post(handle_chat_completion));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 7878));
+    let mut port: u16 = 8080;
+    match env::var("PORT") {
+        Ok(p) => {
+                match p.parse::<u16>() {
+                Ok(n) => {
+                    port = n;
+                }
+                Err(_e) => {}
+                };
+        }
+        Err(_e) => {}
+    };
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     println!("Server running on {}", addr);
     

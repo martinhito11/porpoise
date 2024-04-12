@@ -20,8 +20,8 @@ use crate::openai;
 
 */
 pub async fn get_online_info(query: &str, n: &i32, parallelize: bool, clean_with_openai: bool) -> Vec<String> {
-    let api_key = "AIzaSyATqy-5Vogt_69sZuaI6rg6fN5bV4grqrk";
-    let cx = "e04edfd3b386f454b";
+    let api_key = "YOUR API KEY HERE";
+    let cx = "YOUR CX HERE";
 
     println!("received query for googling: {}", &query);
     // get google custom search API results 
