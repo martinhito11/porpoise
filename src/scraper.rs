@@ -1,3 +1,4 @@
+use ammonia::clean;
 use ammonia::Builder;
 use reqwest;
 use regex::Regex;
@@ -65,8 +66,9 @@ pub async fn get_online_info(query: &str, n: &i32, parallelize: bool, clean_with
     };
     } else {
         for url in urls.iter() {
-            match get_clean_site_body(url.to_string(), clean_with_openai).await {
-                Some(clean_body) => clean_bodies.push(clean_body),
+            match get_clean_site_body(url.clone().to_string(), clean_with_openai).await {
+                Some(clean_body) => 
+                    clean_bodies.push(build_url_with_body_str(&url, &clean_body)),
                 None => continue
             }
         };
@@ -74,6 +76,14 @@ pub async fn get_online_info(query: &str, n: &i32, parallelize: bool, clean_with
 
     return clean_bodies;
     
+}
+
+fn build_url_with_body_str(url: &str, clean_body: &str) -> String {
+    let mut clean_body_with_url = "Source URL: ".to_string();
+    clean_body_with_url.push_str(url);
+    clean_body_with_url.push_str("\nParagraph:");
+    clean_body_with_url.push_str(clean_body); 
+    return clean_body_with_url
 }
 
 async fn search_google(query: &str, api_key: &str, cx: &str, _n: &i32) -> Result<Vec<String>, Box<dyn Error>> {

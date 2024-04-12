@@ -32,6 +32,7 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     let n: i32 = 4;
     let clean_with_openai: bool = true;
     let parallelize: bool = true;
+    let use_serpstack: bool = false;
 
     // parse user query
     let user_messages: Vec<String> = req.messages.iter()
@@ -55,7 +56,12 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     println!("got googleable query: {}", &googleable_query);
 
     // send googleable query to scraper, retrieve cleaned HTML of top n page results 
-    let scraped_pages = scraper::get_online_info(&googleable_query, &n, parallelize, clean_with_openai).await;
+    let scraped_pages: Vec<String> = if use_serpstack {
+        serpstack::get_online_info(&googleable_query).await
+    }
+    else {
+         scraper::get_online_info(&googleable_query, &n, parallelize, clean_with_openai).await
+    };
     
     // build new request 
     let mut msg: String = "".to_string();
@@ -89,25 +95,6 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     // If too many tokens, reduce to n-1 page results 
 
     
-}
-
-
-
-// async fn test_googler() -> Result<Vec<String>, Box<dyn Error>> {
-//     println!("Testing googler");
-//     scraper::get_online_info("nyc earthquake", 3).await
-// }
-
-async fn test_serpstack() -> Result<Vec<String>, Box<dyn Error>> {
-    println!("Testing serpstack");
-    match serpstack::get_online_info("martin hito").await {
-        Ok(google) => {
-            Ok(google)
-        }
-        Err(err) => {
-            Err(err.into())
-        }
-    }
 }
 
 #[tokio::main]
