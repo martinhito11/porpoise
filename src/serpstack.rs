@@ -29,7 +29,7 @@ async fn serpstack_search(query: &str, access_key: &str) -> Result<String, Box<d
     }
 
     pub async fn get_online_info(query: &str) -> Vec<String> {
-        let api_key = "0601306b93db5e1ac38324d2a0739893";
+        let api_key = "YOUR API KEY HERE";
     
         let query_string = &query;
         match serpstack_search(query_string, api_key).await {

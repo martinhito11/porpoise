@@ -166,13 +166,13 @@ async fn clean_html(input: &str, clean_with_openai: bool) -> String {
 
     // regex to match contiguous whitespace characters and replace with single space
     let regex = Regex::new(r"\s+").unwrap();
-    regex.replace_all(&cleaned_html, " ").to_string();
+    let no_whitespace = regex.replace_all(&cleaned_html, " ").to_string();
 
     // clean with openai if set
     if clean_with_openai {
         println!("found request to clean body with openai");
         let mut clean_query: String = openai::CLEAN_HTML_BODY_QUERY_STR.to_string();
-        clean_query.push_str(&cleaned_html);
+        clean_query.push_str(&no_whitespace);
         let req_message_user: ChatCompletionRequestMessage = ChatCompletionRequestMessage {
             role: Role::User,
             content: clean_query
@@ -185,11 +185,11 @@ async fn clean_html(input: &str, clean_with_openai: bool) -> String {
         let resp = openai::send_chat_completion(req, true).await;
         match resp {
             Ok(query) => query.choices[0].message.content.clone(),
-            Err(_) => cleaned_html,
+            Err(_) => no_whitespace,
         }
     }
     else {
-        cleaned_html
+        no_whitespace
     }
 }
 

@@ -29,10 +29,9 @@ curl -X POST 'https://porpoise-hyuqtm35xq-ue.a.run.app/chat/completions' \
 
 Things I did: 
 - Parallelized the OpenAI requests for cleaning up the HTML using tokio
-- 
 - I found a third party API handler for SERP data called serpstack https://serpstack.com/ . I tried using this instead of the google custom search API, but it was useless to me because it didn't summarize results.
 
 Left to try: 
-- Add Perplexity 
+- Add perplexity 
 - Add streaming 
 - Add Google's provided "snippet" from its custom search API to see if that provides verbose enough data. It would make for a faster endpoint if we just used the snippet rather than scraping raw HTML

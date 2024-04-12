@@ -18,5 +18,5 @@ tokio = { version = "1.36.0", features = ["full"] }
 tracing-subscriber = "0.3.18"
 
 [[bin]]
-name = "server"
+name = "porpoise"
 path = "src/server.rs"

@@ -14,15 +14,20 @@ use crate::api_dtos::{
 
 pub async fn send_chat_completion(req: ChatCompletionRequest, internal_req: bool) -> Result<ChatCompletionResponse, Box<dyn Error>> {
     println!("Received request to send to OpenAI");
-    let api_key = "YOUR API KEY HERE";
+    let api_key = "YOUR API_KEY HERE";
     let url = "https://api.openai.com/v1/chat/completions";
     
+    // set a timeout for the request
+    // the request should theoretically take a maximum of ~50 seconds to complete
+    let req_timeout: u64 = match internal_req.clone() {
+        true => 10,
+        false => 30
+    };
     let payload = ChatCompletionRequest { model: req.model.to_string(), messages: req.messages };
 
     // Send the request
     let client = reqwest::Client::new();
-
-    let response = timeout(Duration::from_secs(10), async move {
+    let response = timeout(Duration::from_secs(req_timeout), async move {
         let resp = client
             .post(url)
             .header("Content-Type", "application/json")
