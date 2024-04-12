@@ -1,12 +1,13 @@
 use axum::{
     extract::Json,
+    http::StatusCode,
     response::{IntoResponse, Html},
     routing::{get, post},
     Router
 };
 
 use std::{
-    error::Error, 
+    error::Error,
     fs, 
     net::SocketAddr, 
     path::Path
@@ -18,7 +19,7 @@ mod helpers;
 mod scraper;
 mod serpstack;
 
-use crate::api_dtos::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
+use crate::api_dtos::{ChatCompletionRequest, ChatCompletionRequestMessage, ChatCompletionResponse, Role, ErrorResponse};
 
 async fn index() -> Html<String> {
     println!("Received request to hit index");
@@ -27,7 +28,7 @@ async fn index() -> Html<String> {
     Html(contents)
 }
 
-async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) -> impl IntoResponse {
+async fn handle_chat_completion(Json(req): Json<ChatCompletionRequest>) -> impl IntoResponse {
     println!("Received chat completion request: {:?}", req);
     let n: i32 = 4;
     let clean_with_openai: bool = true;
@@ -72,30 +73,39 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     if scraped_pages.len() > 0 {
         msg.push_str(openai::WITH_INFO_USER_QUERY_STR);
     }
-    
     msg.push_str(&user_messages[0]);
 
-    println!("final msg: {}", msg.clone());
+    println!("final built query: {}", msg.clone());
 
     let req_message_user: ChatCompletionRequestMessage = ChatCompletionRequestMessage {
         role: Role::User,
         content: msg.to_string()
     };
-    let req_with_info: CreateChatCompletionRequest = CreateChatCompletionRequest {
+    let req_with_info: ChatCompletionRequest = ChatCompletionRequest {
         model: req.model,
         messages: vec![req_message_user]
     };
 
     // send new request to openai
-    let resp = openai::send_chat_completion(req_with_info).await;
+    let resp: Result<ChatCompletionResponse, Box<dyn Error>> = openai::send_chat_completion(req_with_info, false).await; // Assuming this is your async function
     match resp {
-        Ok(query) => println!("final message: {}", query.message),
-        Err(err) => println!("final message failed: {}", err),
+        Ok(data) => Json(data).into_response(),
+        Err(e) => error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()).into_response(),
     }
+    
     // If too many tokens, reduce to n-1 page results 
 
     
 }
+
+// Helper function to create an error response
+fn error_response(status: StatusCode, message: &str) -> impl IntoResponse {
+    let error = ErrorResponse {
+        error: message.to_string(),
+    };
+    (status, Json(error))
+}
+
 
 #[tokio::main]
 async fn main() {

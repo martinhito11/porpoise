@@ -1,4 +1,3 @@
-use ammonia::clean;
 use ammonia::Builder;
 use reqwest;
 use regex::Regex;
@@ -7,10 +6,9 @@ use serde_json::json;
 use serde_json::Value;
 use std::error::Error;
 use std::collections::HashMap;
-use tokio::task;
 
 use crate::helpers;
-use crate::api_dtos::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
+use crate::api_dtos::{ChatCompletionRequestMessage, ChatCompletionRequest, Role};
 use crate::openai;
 
 /*
@@ -179,14 +177,14 @@ async fn clean_html(input: &str, clean_with_openai: bool) -> String {
             role: Role::User,
             content: clean_query
         };
-        let req: CreateChatCompletionRequest = CreateChatCompletionRequest {
+        let req: ChatCompletionRequest = ChatCompletionRequest {
             model: openai::DEFAULT_MODEL.to_string(),
             messages: vec![req_message_user]
         };
     
-        let resp = openai::send_chat_completion(req).await;
+        let resp = openai::send_chat_completion(req, true).await;
         match resp {
-            Ok(query) => query.message,
+            Ok(query) => query.choices[0].message.content.clone(),
             Err(_) => cleaned_html,
         }
     }
