@@ -31,6 +31,7 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     println!("Received chat completion request: {:?}", req);
     let n: i32 = 4;
     let clean_with_openai: bool = true;
+    let parallelize: bool = true;
 
     // parse user query
     let user_messages: Vec<String> = req.messages.iter()
@@ -54,7 +55,7 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
     println!("got googleable query: {}", &googleable_query);
 
     // send googleable query to scraper, retrieve cleaned HTML of top n page results 
-    let scraped_pages = scraper::get_online_info(&googleable_query, &n, clean_with_openai).await;
+    let scraped_pages = scraper::get_online_info(&googleable_query, &n, parallelize, clean_with_openai).await;
     
     // build new request 
     let mut msg: String = "".to_string();

@@ -6,6 +6,7 @@ use serde_json::json;
 use serde_json::Value;
 use std::error::Error;
 use std::collections::HashMap;
+use tokio::task;
 
 use crate::helpers;
 use crate::api_dtos::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
@@ -19,7 +20,7 @@ use crate::openai;
     Returns: Vector of cleaned HTML body of the top n result URLs 
 
 */
-pub async fn get_online_info(query: &str, n: &i32, clean_with_openai: bool) -> Vec<String> {
+pub async fn get_online_info(query: &str, n: &i32, parallelize: bool, clean_with_openai: bool) -> Vec<String> {
     let api_key = "AIzaSyATqy-5Vogt_69sZuaI6rg6fN5bV4grqrk";
     let cx = "e04edfd3b386f454b";
 
@@ -34,30 +35,42 @@ pub async fn get_online_info(query: &str, n: &i32, clean_with_openai: bool) -> V
     let dic_results = helpers::json_vec_to_vec_map(google_results);
     println!("results of google query: {:?}", &dic_results);
 
-    let mut urls = Vec::new();
-    for vec in &dic_results {
+    let mut urls: Vec<String> = Vec::new();
+    for vec in dic_results {
         let link_value = vec.get("link").unwrap_or_else(|| {
-            panic!("No link found in the vector");
+            panic!("No link found in the vector")
         });
+    
         let link = link_value.as_str().unwrap_or_else(|| {
-            panic!("Link value is not a string");
+            panic!("Link value is not a string")
         });
+    
         // check if url in the blacklist 
         let shortened_link = shorten_url(link);
         if !BLACKLISTED_URLS.contains_key(&shortened_link) {
-            urls.push(link)
+            urls.push(link.to_string())
         }
-    };
-    for url in urls.clone() { println!("url found: {}", &url); }
+    }
 
     // get list of clean HTML bodies of URLs
     let mut clean_bodies = Vec::new();
-    for url in urls.iter().take(*n as usize) {
-        match get_clean_site_body(url, clean_with_openai).await {
-            Some(clean_body) => clean_bodies.push(clean_body),
-            None => continue
+    if parallelize {
+        let futures: Vec<_> = urls.into_iter().take(*n as usize)
+            .map(|url| tokio::spawn(get_clean_site_body(url, clean_with_openai)))
+            .collect();
+    for future in futures {
+        if let Ok(result) = future.await {
+            clean_bodies.push(result.unwrap_or("".to_string()));
         }
     };
+    } else {
+        for url in urls.iter() {
+            match get_clean_site_body(url.to_string(), clean_with_openai).await {
+                Some(clean_body) => clean_bodies.push(clean_body),
+                None => continue
+            }
+        };
+    }
 
     return clean_bodies;
     
@@ -115,8 +128,9 @@ fn extract_query_items(html_content: &str) -> Vec<String> {
     }
 }
 
-pub async fn get_clean_site_body(url: &str, clean_with_openai: bool) -> Option<String> {
-    let response = match reqwest::get(url).await {
+// helper function to claned up site body for a given url 
+async fn get_clean_site_body(url: String, clean_with_openai: bool) -> Option<String> {
+    let response = match reqwest::get(url.clone()).await {
         Ok(response) => response,
         Err(_) => return None,
     };
@@ -135,7 +149,7 @@ pub async fn get_clean_site_body(url: &str, clean_with_openai: bool) -> Option<S
     }
 }
 
-// helper function to remove all HTML fragments
+// helper function to remove HTML fragments
 async fn clean_html(input: &str, clean_with_openai: bool) -> String {
     let cleaned_html = Builder::default()
         .tags(std::collections::HashSet::new())
@@ -171,7 +185,6 @@ async fn clean_html(input: &str, clean_with_openai: bool) -> String {
     }
 }
 
-
 // helper function to remove all parts of a URL after ".com"
 // to match it with the URLs in the blacklist 
 fn shorten_url(url: &str) -> String {
@@ -192,6 +205,8 @@ lazy_static! {
         m.insert("https://www.reddit.com".to_string(), ());
         m.insert("https://www.linkedin.com".to_string(), ());
         m.insert("https://www.quora.com".to_string(), ());
+        m.insert("https://www.reuters.com".to_string(), ());
+        m.insert("https://www.foodnetwork.com".to_string(), ());
         m
     };
 }
