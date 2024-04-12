@@ -1001,6 +1001,7 @@ version = "0.1.0"
 dependencies = [
  "ammonia",
  "axum",
+ "lazy_static",
  "regex",
  "reqwest",
  "serde",

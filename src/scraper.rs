@@ -1,15 +1,15 @@
 use ammonia::Builder;
 use reqwest;
 use regex::Regex;
+use lazy_static::lazy_static;
 use serde_json::json;
 use serde_json::Value;
 use std::error::Error;
+use std::collections::HashMap;
 
 use crate::helpers;
 use crate::api_dtos::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
 use crate::openai;
-
-
 
 /*
     Parameters: 
@@ -29,7 +29,6 @@ pub async fn get_online_info(query: &str, n: &i32, clean_with_openai: bool) -> V
         Ok(paragraphs) => paragraphs,
         Err(_) => vec!["".to_string()]
     };
-    println!("google_results: {:?}", google_results.clone());
 
     // get URLs from results 
     let dic_results = helpers::json_vec_to_vec_map(google_results);
@@ -43,7 +42,11 @@ pub async fn get_online_info(query: &str, n: &i32, clean_with_openai: bool) -> V
         let link = link_value.as_str().unwrap_or_else(|| {
             panic!("Link value is not a string");
         });
-        urls.push(link);
+        // check if url in the blacklist 
+        let shortened_link = shorten_url(link);
+        if !BLACKLISTED_URLS.contains_key(&shortened_link) {
+            urls.push(link)
+        }
     };
     for url in urls.clone() { println!("url found: {}", &url); }
 
@@ -166,4 +169,29 @@ async fn clean_html(input: &str, clean_with_openai: bool) -> String {
     else {
         cleaned_html
     }
+}
+
+
+// helper function to remove all parts of a URL after ".com"
+// to match it with the URLs in the blacklist 
+fn shorten_url(url: &str) -> String {
+    if let Some(index) = url.find(".com") {
+        let end_index = index + 4;
+        println!("shortened to url: {}", String::from(&url[..end_index.clone()]));
+        String::from(&url[..end_index])
+    } else {
+        url.to_string()
+    }
+}
+
+// hashmap of blacklisted urls to avoid when parsing
+// these websites have protections against scraping, and a GET will result in 400 or 999 errors 
+lazy_static! {
+    static ref BLACKLISTED_URLS: HashMap<String, ()> = {
+        let mut m = HashMap::new();
+        m.insert("https://www.reddit.com".to_string(), ());
+        m.insert("https://www.linkedin.com".to_string(), ());
+        m.insert("https://www.quora.com".to_string(), ());
+        m
+    };
 }

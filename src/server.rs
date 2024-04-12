@@ -55,8 +55,6 @@ async fn handle_chat_completion(Json(req): Json<CreateChatCompletionRequest>) ->
 
     // send googleable query to scraper, retrieve cleaned HTML of top n page results 
     let scraped_pages = scraper::get_online_info(&googleable_query, &n, clean_with_openai).await;
-    if scraped_pages.clone().len() > 0 { println!("got scraped pages: {}", scraped_pages[0].clone()); }
-    else { println!("no webpages were found") }
     
     // build new request 
     let mut msg: String = "".to_string();
