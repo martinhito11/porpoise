@@ -40,7 +40,19 @@ the above request should give a response that looks like this:
       "index": 0,
       "message": {
         "role": "assistant",
-        "content": "Reddit is preparing to launch an initial public offering (IPO) valued at up to $6.4 billion, aiming to raise almost $750 million by offering 22 million shares priced between $31 and $34 each. This significant step includes not only institutional investors but also an unconventional move to offer shares directly to Reddit's active users and moderators. This approach integrates these central community figures into the financial evolution of the company, marking a novel method in handling tech IPOs. This participatory strategy could add some variability to the IPO process due to the immediate selling rights granted to these users, potentially affecting stock price stability post-IPO. Additionally, Reddit's deal with Google, involving access to its extensive data for AI training, represents a new revenue stream while its persistent unprofitability raises critical considerations for potential investors ([Reddit looking to raise almost $750 million in IPO | AP News](https://www.apnews.com/reddit-ipo-details-and-strategy))."
+        "content": "Reddit is preparing to launch an initial public offering (IPO) 
+        valued at up to $6.4 billion, aiming to raise almost $750 million by offering 
+        22 million shares priced between $31 and $34 each. This significant step 
+        includes not only institutional investors but also an unconventional move to 
+        offer shares directly to Reddit's active users and moderators. This approach 
+        integrates these central community figures into the financial evolution of the 
+        company, marking a novel method in handling tech IPOs. This participatory strategy 
+        could add some variability to the IPO process due to the immediate selling rights 
+        granted to these users, potentially affecting stock price stability post-IPO. 
+        Additionally, Reddit's deal with Google, involving access to its extensive data 
+        for AI training, represents a new revenue stream while its persistent unprofitability 
+        raises critical considerations for potential investors ([Reddit looking to raise 
+        almost $750 million in IPO | AP News](https://www.apnews.com/reddit-ipo-details-and-strategy))."
       },
       "logprobs": null,
       "finish_reason": "stop"
@@ -53,6 +65,8 @@ the above request should give a response that looks like this:
   }
 }
 ```
+Interesting problems I came across: 
+
 
 Things I did: 
 - Parallelized the OpenAI requests for cleaning up the HTML using tokio
